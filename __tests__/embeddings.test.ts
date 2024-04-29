@@ -1,13 +1,5 @@
 import { EmbeddingIndex, BinaryEmbeddingIndex } from '../src/index';
 
-interface Query {
-  vector: number[];
-}
-
-interface ExpectedResult {
-  id: string;
-}
-
 describe('Embedding Performance Tests', () => {
   let regularIndex: EmbeddingIndex;
   let binaryIndex: BinaryEmbeddingIndex;
