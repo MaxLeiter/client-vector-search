@@ -329,4 +329,56 @@ export class EmbeddingIndex {
     }
     return objects;
   }
+
+  _getObjects() {
+    return this.objects;
+  }
+}
+
+// A binary embedding is when the embeddings are rounded to -1/1 values.
+export class BinaryEmbeddingIndex extends EmbeddingIndex {
+  constructor(initialObjects?: Filter[]) {
+    super(initialObjects);
+  }
+
+  add(obj: Filter) {
+    obj.embedding = binarize(obj.embedding);
+    super.add(obj);
+  }
+
+  update(filter: Filter, vector: Filter) {
+    vector.embedding = binarize(vector.embedding);
+    super.update(filter, vector);
+  }
+
+  search(
+    queryEmbedding: number[],
+    options: SearchOptions = { topK: 3 },
+  ): Promise<SearchResult[]> {
+    queryEmbedding = binarize(queryEmbedding); // Binarize the query embedding
+
+    // Compute similarities using Hamming distance
+    const similarities = this._getObjects()
+      .filter((object) =>
+        Object.keys(options.filter || {}).every(
+          (key) => object[key] === (options.filter || {})[key],
+        ),
+      )
+      .map((obj) => ({
+        similarity: cosineSimilarity(queryEmbedding, obj.embedding),
+        object: obj,
+      }));
+
+    return new Promise((resolve) => {
+      resolve(
+        similarities
+          .sort((a, b) => b.similarity - a.similarity)
+          .slice(0, options.topK || DEFAULT_TOP_K),
+      );
+    });
+  }
+}
+
+function binarize(embedding: number[]): number[] {
+  return embedding.map((value) => (value >= 0 ? 1 : -1));
 }
